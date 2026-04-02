@@ -68,6 +68,9 @@
 {
     self.publicKey = [publicKey copy];
     self.environment = environment;
+    self.locale = AFFIRM_DEFAULT_LOCALE;
+    self.countryCode = AFFIRM_DEFAULT_COUNTRY_CODE;
+    self.currency = AFFIRM_DEFAULT_CURRENCY;
     self.merchantName = [merchantName copy];
 }
 
