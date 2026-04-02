@@ -207,4 +207,31 @@
     [AffirmConfiguration sharedInstance].pool = nil;
 }
 
+- (void)setLocale:(NSString *)locale
+{
+    if (locale == nil || locale.length == 0) {
+        [[AffirmLogger sharedInstance] logException:@"Locale is empty. Please provide a valid locale string."];
+        return;
+    }
+    _locale = [locale copy];
+}
+
+- (void)setCountryCode:(NSString *)countryCode
+{
+    if (countryCode == nil || countryCode.length == 0) {
+        [[AffirmLogger sharedInstance] logException:@"Country code is empty. Please provide a valid country code."];
+        return;
+    }
+    _countryCode = [countryCode copy];
+}
+
+- (void)setCurrency:(NSString *)currency
+{
+    if (currency == nil || currency.length == 0) {
+        [[AffirmLogger sharedInstance] logException:@"Currency is empty. Please provide a valid currency string."];
+        return;
+    }
+    _currency = [currency copy];
+}
+
 @end

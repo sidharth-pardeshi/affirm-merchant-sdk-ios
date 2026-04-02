@@ -149,6 +149,33 @@ NS_SWIFT_NAME(configure(publicKey:environment:locale:countryCode:currency:mercha
  */
 + (void)deleteAffirmCookies;
 
+/**
+ Updates the locale used by Affirm after initialization.
+ Use this to dynamically switch regions without requiring an app relaunch.
+
+ @param locale The locale string (e.g., "en_US", "en_CA", "en_GB").
+ */
+- (void)setLocale:(NSString *)locale
+NS_SWIFT_NAME(setLocale(_:));
+
+/**
+ Updates the country code used by Affirm after initialization.
+ Use this to dynamically switch regions without requiring an app relaunch.
+
+ @param countryCode The country code string (e.g., "USA", "CAN", "GBR").
+ */
+- (void)setCountryCode:(NSString *)countryCode
+NS_SWIFT_NAME(setCountryCode(_:));
+
+/**
+ Updates the currency used by Affirm after initialization.
+ Use this to dynamically switch regions without requiring an app relaunch.
+
+ @param currency The currency string (e.g., "USD", "CAD", "GBP").
+ */
+- (void)setCurrency:(NSString *)currency
+NS_SWIFT_NAME(setCurrency(_:));
+
 @end
 
 NS_ASSUME_NONNULL_END
