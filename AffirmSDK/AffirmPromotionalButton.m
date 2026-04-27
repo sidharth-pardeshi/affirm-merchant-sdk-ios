@@ -180,6 +180,7 @@ static NSString * FormatAffirmDataTypeString(AffirmLogoType type)
 - (void)setup
 {
     self.isAccessibilityElement = YES;
+    self.accessibilityTraits = UIAccessibilityTraitButton;
     self.showPrequal = YES;
     self.clickable = NO;
     [self configureWebView];

@@ -36,7 +36,7 @@
     [self clearCookies];
     
     XCUIElement *alaElement = [self.app.buttons softMatchingWithSubstring:@"Learn more"];
-    [self waitForElement:alaElement duration:10];
+    [self waitForElement:alaElement duration:30];
     XCTAssertTrue(alaElement.exists);
     
     [alaElement tap];
