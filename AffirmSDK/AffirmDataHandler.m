@@ -172,7 +172,8 @@
             NSString *template = nil;
             if (promoResponse.ala != nil && promoResponse.ala.length > 0) {
                 template = promoResponse.ala;
-                accessibilityLabel = withAccessibility ? [promoResponse.ala stringByReplacingOccurrencesOfString:@"{Affirm}" withString:@"Affirm"] : nil;
+                NSString *cleanedAla = [promoResponse.ala stringByReplacingOccurrencesOfString:@"{affirm_logo}" withString:@"Affirm"];
+                accessibilityLabel = withAccessibility ? [cleanedAla stringByReplacingOccurrencesOfString:@"{Affirm}" withString:@"Affirm"] : nil;
             }
             if (template) {
                 UIImage *logo = nil;
