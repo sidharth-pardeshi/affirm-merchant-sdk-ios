@@ -15,6 +15,7 @@
 #import "AffirmRequest.h"
 #import "AffirmLogger.h"
 
+static NSString *const AFFIRM_LOGO_PLACEHOLDER = @"{affirm_logo}";
 static NSString *const AFFIRM_DEFAULT_ALA_TEMPLATE = @"Pay over time with {affirm_logo}";
 
 static NSString * FormatAffirmLogoString(AffirmLogoType type)
@@ -102,13 +103,13 @@ static NSString * FormatAffirmDataTypeString(AffirmLogoType type)
         return attributedText;
     }
     
-    while ([attributedText.mutableString containsString:@"{affirm_logo}"]) {
+    while ([attributedText.mutableString containsString:AFFIRM_LOGO_PLACEHOLDER]) {
         NSTextAttachment *attachment = [[NSTextAttachment alloc] init];
         attachment.image = logo;
         CGSize logoSize = [self sizeForLogoType:logoType logoSize:logo.size height:font.pointSize];
         attachment.bounds = CGRectMake(0, 0, logoSize.width, logoSize.height);
         NSAttributedString *attributedLogo = [NSAttributedString attributedStringWithAttachment:attachment];
-        [attributedText replaceCharactersInRange:[attributedText.mutableString rangeOfString:@"{affirm_logo}"] withAttributedString:attributedLogo];
+        [attributedText replaceCharactersInRange:[attributedText.mutableString rangeOfString:AFFIRM_LOGO_PLACEHOLDER] withAttributedString:attributedLogo];
     }
     return attributedText;
 }
@@ -300,7 +301,7 @@ static NSString * FormatAffirmDataTypeString(AffirmLogoType type)
             AffirmPromoResponse *promoResponse = (AffirmPromoResponse *)response;
             self.showPrequal = promoResponse.showPrequal;
             if (promoResponse.ala != nil && promoResponse.ala.length > 0) {
-                NSString *label = [promoResponse.ala stringByReplacingOccurrencesOfString:@"{affirm_logo}" withString:@"Affirm"];
+                NSString *label = [promoResponse.ala stringByReplacingOccurrencesOfString:AFFIRM_LOGO_PLACEHOLDER withString:@"Affirm"];
                 self.accessibilityLabel = [label stringByReplacingOccurrencesOfString:@"{Affirm}" withString:@"Affirm"];
             }
             if (promoResponse.htmlAla != nil && promoResponse.htmlAla.length > 0) {
@@ -369,7 +370,7 @@ static NSString * FormatAffirmDataTypeString(AffirmLogoType type)
             AffirmPromoResponse *promoResponse = (AffirmPromoResponse *)response;
             if (promoResponse.ala != nil && promoResponse.ala.length > 0) {
                 template = promoResponse.ala;
-                NSString *label = [promoResponse.ala stringByReplacingOccurrencesOfString:@"{affirm_logo}" withString:@"Affirm"];
+                NSString *label = [promoResponse.ala stringByReplacingOccurrencesOfString:AFFIRM_LOGO_PLACEHOLDER withString:@"Affirm"];
                 self.accessibilityLabel = [label stringByReplacingOccurrencesOfString:@"{Affirm}" withString:@"Affirm"];
             }
             self.showPrequal = promoResponse.showPrequal;
