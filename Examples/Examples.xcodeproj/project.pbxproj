@@ -14,7 +14,6 @@
 		081439B9222E45D800C7068D /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 081439B7222E45D800C7068D /* LaunchScreen.storyboard */; };
 		081439BC222E45D800C7068D /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 081439BB222E45D800C7068D /* main.m */; };
 		081439D1222E45D800C7068D /* ExamplesUITests.m in Sources */ = {isa = PBXBuildFile; fileRef = 081439D0222E45D800C7068D /* ExamplesUITests.m */; };
-		A90100000000000000000001 /* UpfunnelPromoMessagingUITests.m in Sources */ = {isa = PBXBuildFile; fileRef = A90100000000000000000003 /* UpfunnelPromoMessagingUITests.m */; };
 		A90100000000000000000002 /* UpfunnelPromoMessagingThorUITests.m in Sources */ = {isa = PBXBuildFile; fileRef = A90100000000000000000005 /* UpfunnelPromoMessagingThorUITests.m */; };
 		0815CCF322F2817500ABB7CB /* OpenSansCondensed-Light.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 0815CCF022F2817400ABB7CB /* OpenSansCondensed-Light.ttf */; };
 		0815CCF422F2817500ABB7CB /* OpenSansCondensed-Light.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 0815CCF022F2817400ABB7CB /* OpenSansCondensed-Light.ttf */; };
@@ -59,7 +58,6 @@
 		081439CC222E45D800C7068D /* ExamplesUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ExamplesUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		081439D0222E45D800C7068D /* ExamplesUITests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ExamplesUITests.m; sourceTree = "<group>"; };
 		081439D2222E45D800C7068D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		A90100000000000000000003 /* UpfunnelPromoMessagingUITests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = UpfunnelPromoMessagingUITests.m; sourceTree = "<group>"; };
 		A90100000000000000000004 /* OWNERS */ = {isa = PBXFileReference; lastKnownFileType = text; path = OWNERS; sourceTree = "<group>"; };
 		A90100000000000000000005 /* UpfunnelPromoMessagingThorUITests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = UpfunnelPromoMessagingThorUITests.m; sourceTree = "<group>"; };
 		0815CCF022F2817400ABB7CB /* OpenSansCondensed-Light.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "OpenSansCondensed-Light.ttf"; sourceTree = "<group>"; };
@@ -173,7 +171,6 @@
 		A90100000000000000000006 /* UpfunnelPromoMessaging */ = {
 			isa = PBXGroup;
 			children = (
-				A90100000000000000000003 /* UpfunnelPromoMessagingUITests.m */,
 				A90100000000000000000005 /* UpfunnelPromoMessagingThorUITests.m */,
 				A90100000000000000000004 /* OWNERS */,
 			);
@@ -462,7 +459,6 @@
 				0892050E2265B64200E8FD86 /* XCTestCase+Utils.m in Sources */,
 				089205112265C20300E8FD86 /* XCUIElementQuery+Utils.m in Sources */,
 				081439D1222E45D800C7068D /* ExamplesUITests.m in Sources */,
-				A90100000000000000000001 /* UpfunnelPromoMessagingUITests.m in Sources */,
 				A90100000000000000000002 /* UpfunnelPromoMessagingThorUITests.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
