@@ -18,9 +18,16 @@
 
 @implementation ExamplesUITests
 
+static NSString *const AffirmRunSandboxUITestsEnvironmentKey = @"AFFIRM_RUN_SANDBOX_UI_TESTS";
+
 - (void)setUp
 {
     self.continueAfterFailure = NO;
+    NSString *runSandboxUITests = [[[NSProcessInfo processInfo] environment] objectForKey:AffirmRunSandboxUITestsEnvironmentKey];
+    if (runSandboxUITests.length == 0) {
+        XCTSkip(@"Sandbox-dependent example UI smoke tests are opt-in. Set AFFIRM_RUN_SANDBOX_UI_TESTS to run them.");
+        return;
+    }
     self.app = [[XCUIApplication alloc] init];
     [self.app launch];
 }
