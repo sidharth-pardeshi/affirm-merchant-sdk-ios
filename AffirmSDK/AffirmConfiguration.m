@@ -18,6 +18,7 @@
 @property (nonatomic, readwrite) AffirmEnvironment environment;
 @property (nonatomic, readwrite) NSString *locale;
 @property (nonatomic, copy, readwrite, nullable) NSString *merchantName;
+@property (nonatomic, copy, readwrite, nullable) NSString *promosURLOverride;
 @property (nonatomic, strong, readwrite) WKProcessPool *pool;
 @property (nonatomic, strong, readwrite, nullable) AffirmCreditCard *creditCard;
 
@@ -116,6 +117,10 @@
 
 - (NSString *)promosURL
 {
+    if (self.promosURLOverride.length > 0) {
+        return self.promosURLOverride;
+    }
+
     switch (self.environment) {
         case AffirmEnvironmentSandbox:
             if ([self.countryCode isEqualToString:@"CAN"]) {
