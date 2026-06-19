@@ -16,6 +16,7 @@
 
 static NSString *const AffirmPromoBaseURLEnvironmentKey = @"AFFIRM_PROMO_BASE_URL";
 static NSString *const AffirmPublicKeyEnvironmentKey = @"AFFIRM_PUBLIC_KEY";
+static NSString *const AffirmPromoExternalIDEnvironmentKey = @"AFFIRM_PROMO_EXTERNAL_ID";
 static NSString *const AffirmExpectedPromoTextEnvironmentKey = @"AFFIRM_EXPECTED_PROMO_TEXT";
 static NSString *const AffirmCountryCodeEnvironmentKey = @"AFFIRM_COUNTRY_CODE";
 static NSString *const AffirmLocaleEnvironmentKey = @"AFFIRM_LOCALE";
@@ -41,6 +42,7 @@ static NSString *const AffirmCurrencyEnvironmentKey = @"AFFIRM_CURRENCY";
     self.app.launchEnvironment = @{
         AffirmPromoBaseURLEnvironmentKey: promoBaseURL,
         AffirmPublicKeyEnvironmentKey: publicKey,
+        AffirmPromoExternalIDEnvironmentKey: environment[AffirmPromoExternalIDEnvironmentKey] ?: @"test_external_id",
         AffirmCountryCodeEnvironmentKey: environment[AffirmCountryCodeEnvironmentKey] ?: @"USA",
         AffirmLocaleEnvironmentKey: environment[AffirmLocaleEnvironmentKey] ?: @"en_US",
         AffirmCurrencyEnvironmentKey: environment[AffirmCurrencyEnvironmentKey] ?: @"USD",

@@ -9,6 +9,8 @@
 #import "ViewController.h"
 #import <AffirmSDK/AffirmSDK.h>
 
+static NSString *const AffirmPromoExternalIDEnvironmentKey = @"AFFIRM_PROMO_EXTERNAL_ID";
+
 @interface ViewController () <UITextFieldDelegate, AffirmPrequalDelegate, AffirmCheckoutDelegate>
 
 @property (nonatomic, weak) IBOutlet UIScrollView *scrollView;
@@ -48,6 +50,11 @@
     
     // Configure Textfields
     self.publicKeyTextfield.text = [AffirmConfiguration sharedInstance].publicKey;
+    NSString *promoExternalID = [[NSProcessInfo processInfo] environment][AffirmPromoExternalIDEnvironmentKey];
+    if (promoExternalID.length > 0) {
+        self.promoIDTextField.text = promoExternalID;
+        self.promotionalButton.promoID = promoExternalID;
+    }
     [self configureTextField];
 }
 
@@ -358,7 +365,8 @@
                                                remoteFontURL:fontURL
                                                 remoteCssURL:cssURL];
     
-    [AffirmDataHandler getPromoMessageWithPromoID:nil
+    NSString *promoID = self.promoIDTextField.text.length > 0 ? self.promoIDTextField.text : nil;
+    [AffirmDataHandler getPromoMessageWithPromoID:promoID
                                            amount:dollarPrice
                                             items:@[item]
                                           showCTA:YES
