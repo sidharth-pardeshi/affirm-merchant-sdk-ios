@@ -10,6 +10,7 @@
 #import "../AffirmSDK/AffirmConfiguration.h"
 #import "../AffirmSDK/AffirmUtils.h"
 #import "../AffirmSDK/AffirmRequest.h"
+#import "../AffirmSDK/AffirmItem.h"
 #import "../AffirmSDK/AffirmCardValidator.h"
 
 @interface AffirmSDKTests : XCTestCase
@@ -47,6 +48,50 @@
     
     NSString *jsonStringError = @"{\"number\":\"40012959709,\"callback_id\":\"4DACF-ASBJ-WEAS-GBNZ\",\"date\":\"2018-09-12\"}";
     XCTAssertNil([jsonStringError convertToDictionary]);
+}
+
+- (void)testPromoRequestPathAndParameters
+{
+    [[AffirmConfiguration sharedInstance] configureWithPublicKey:@"PKNCHBIVYOT8JSOZ"
+                                                     environment:AffirmEnvironmentSandbox
+                                                          locale:@"en_US"
+                                                     countryCode:@"USA"
+                                                        currency:@"USD"
+                                                    merchantName:@"Affirm Test"];
+    NSDecimalNumber *amount = [NSDecimalNumber decimalNumberWithString:@"1234.56"];
+    AffirmItem *item = [AffirmItem itemWithName:@"Affirm Test Item"
+                                            SKU:@"test_item"
+                                      unitPrice:amount
+                                       quantity:1
+                                            URL:[NSURL URLWithString:@"https://sandbox.affirm.com/item"]];
+    AffirmPromoRequest *request = [[AffirmPromoRequest alloc] initWithPublicKey:@"PKNCHBIVYOT8JSOZ"
+                                                                        promoId:@"promo_123"
+                                                                         amount:amount
+                                                                        showCTA:YES
+                                                                       pageType:@"product"
+                                                                       logoType:@"logo"
+                                                                      logoColor:@"blue"
+                                                                          items:@[item]];
+    NSDictionary *parameters = request.parameters;
+
+    XCTAssertEqualObjects(request.path, @"/api/promos/v2/PKNCHBIVYOT8JSOZ");
+    XCTAssertEqual(request.method, AffirmHTTPMethodGET);
+    XCTAssertEqualObjects(parameters[@"is_sdk"], @"true");
+    XCTAssertEqualObjects(parameters[@"field"], @"ala");
+    XCTAssertEqualObjects(parameters[@"show_cta"], @"true");
+    XCTAssertEqualObjects(parameters[@"amount"], [amount toIntegerCents]);
+    XCTAssertEqualObjects(parameters[@"promo_external_id"], @"promo_123");
+    XCTAssertEqualObjects(parameters[@"page_type"], @"product");
+    XCTAssertEqualObjects(parameters[@"logo_type"], @"logo");
+    XCTAssertEqualObjects(parameters[@"logo_color"], @"blue");
+    XCTAssertEqualObjects(parameters[@"locale"], @"en_US");
+    NSArray *items = parameters[@"items"];
+    NSDictionary *requestItem = items.firstObject;
+    XCTAssertEqual(items.count, 1);
+    XCTAssertEqualObjects(requestItem[@"display_name"], @"Affirm Test Item");
+    XCTAssertEqualObjects(requestItem[@"sku"], @"test_item");
+    XCTAssertEqualObjects(requestItem[@"unit_price"], [amount toIntegerCents]);
+    XCTAssertEqualObjects(requestItem[@"item_url"], @"https://sandbox.affirm.com/item");
 }
 
 - (void)testVisaCard

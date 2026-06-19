@@ -38,10 +38,13 @@
                                                                      pageType:AffirmPageTypeProduct
                                                      presentingViewController:self
                                                                         frame:CGRectMake(0, 0, 315, 40)];
+    self.promotionalButton.accessibilityIdentifier = @"affirm_promo_html_button";
+    self.promotionalButton.accessibilityTraits = UIAccessibilityTraitButton;
     [self.stackView insertArrangedSubview:self.promotionalButton atIndex:0];
     
     // Using AffirmDataHandler for second button (See more in configurPromotionalMessage)
     self.promoButton.titleLabel.numberOfLines = 0;
+    self.promoButton.accessibilityIdentifier = @"affirm_promo_native_button";
     
     // Configure Textfields
     self.publicKeyTextfield.text = [AffirmConfiguration sharedInstance].publicKey;
@@ -380,8 +383,15 @@
         }
         
         // Configure native button using attributed string
-        [self.promoButton setAttributedTitle:attributedString forState:UIControlStateNormal];
-        self.promoButton.accessibilityLabel = accessibilityLabel;
+        self.promoButton.hidden = attributedString == nil;
+        self.promoButton.enabled = attributedString != nil && viewController != nil;
+        if (attributedString) {
+            [self.promoButton setAttributedTitle:attributedString forState:UIControlStateNormal];
+            self.promoButton.accessibilityLabel = accessibilityLabel;
+        } else {
+            [self.promoButton setAttributedTitle:nil forState:UIControlStateNormal];
+            self.promoButton.accessibilityLabel = nil;
+        }
         
         self.promoViewController = viewController;
     }];
