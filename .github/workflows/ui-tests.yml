@@ -2,6 +2,37 @@ name: Run UITests
 
 on:
   workflow_dispatch:
+    inputs:
+      run_upfunnel_promo_thor_test:
+        description: Run the Upfunnel promo messaging Thor UI test instead of the normal UI suite.
+        required: false
+        default: "false"
+      affirm_promo_base_url:
+        description: Thor base URL, for example https://<thor-id>.affirm-thor.com.
+        required: false
+      affirm_public_key:
+        description: Thor merchant public key created by the Buildkite orchestration step.
+        required: false
+      affirm_promo_external_id:
+        description: Promo external id configured for the Thor merchant.
+        required: false
+        default: test_external_id
+      affirm_expected_promo_text:
+        description: Expected ALA text returned by the live Upfunnel service.
+        required: false
+        default: Affirm
+      affirm_country_code:
+        description: Country code for the sample app SDK configuration.
+        required: false
+        default: USA
+      affirm_locale:
+        description: Locale for the sample app SDK configuration.
+        required: false
+        default: en_US
+      affirm_currency:
+        description: Currency for the sample app SDK configuration.
+        required: false
+        default: USD
   pull_request:
     types: [ opened, synchronize ]
   push:
@@ -20,6 +51,27 @@ jobs:
       
     - name: Build
       run: xcodebuild build-for-testing -workspace Examples/Examples.xcworkspace -scheme ExamplesUITests -destination "platform=iOS Simulator,name=iPhone 15"
-      
+
     - name: Test
+      if: ${{ github.event_name != 'workflow_dispatch' || inputs.run_upfunnel_promo_thor_test != 'true' }}
       run: xcodebuild -workspace Examples/Examples.xcworkspace -scheme ExamplesUITests -destination "platform=iOS Simulator,name=iPhone 15" test
+
+    - name: Upfunnel Promo Thor UITest
+      if: ${{ github.event_name == 'workflow_dispatch' && inputs.run_upfunnel_promo_thor_test == 'true' }}
+      env:
+        AFFIRM_PROMO_BASE_URL: ${{ inputs.affirm_promo_base_url }}
+        AFFIRM_PUBLIC_KEY: ${{ inputs.affirm_public_key }}
+        AFFIRM_PROMO_EXTERNAL_ID: ${{ inputs.affirm_promo_external_id }}
+        AFFIRM_EXPECTED_PROMO_TEXT: ${{ inputs.affirm_expected_promo_text }}
+        AFFIRM_COUNTRY_CODE: ${{ inputs.affirm_country_code }}
+        AFFIRM_LOCALE: ${{ inputs.affirm_locale }}
+        AFFIRM_CURRENCY: ${{ inputs.affirm_currency }}
+      run: tools/buildkite/run_upfunnel_promo_thor_uitest.sh
+
+    - name: Upload Upfunnel Promo Thor result bundle
+      if: ${{ always() && github.event_name == 'workflow_dispatch' && inputs.run_upfunnel_promo_thor_test == 'true' }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: UpfunnelPromoThorUITests.xcresult
+        path: build/UpfunnelPromoThorUITests.xcresult
+        if-no-files-found: warn

@@ -1,0 +1,106 @@
+# Runs the iOS Merchant SDK promo messaging sample app against a live US Thor.
+---
+env:
+  ALL_THE_THINGS_DIR: /tmp/all-the-things
+  LINUX_IMAGE: |-
+    998571911837.dkr.ecr.us-east-1.amazonaws.com/affirm-android:android-slim-ci-jdk21-sdk34
+
+steps:
+  - key: thor-provision
+    trigger: thor-provision-for-frontend-tests
+    async: false
+    build:
+      branch: main
+      message: Provision Thor for iOS Merchant SDK promo messaging tests on $BUILDKITE_BRANCH
+      meta_data:
+        dts: [ "superapp" ]
+        caller: affirm-merchant-sdk-ios
+        mode: live
+        country_code: us
+        environment: thor
+        triggered_from_job: "${BUILDKITE_JOB_ID}"
+    label: Thor Provision
+    allow_dependency_failure: false
+
+  - key: create-thor-merchant
+    label: Create live Upfunnel merchant on Thor
+    depends_on: [ "thor-provision" ]
+    commands: |
+      THOR_ID="$(buildkite-agent meta-data get "thor-id-us-live")"
+      export BACKEND_URL="https://${THOR_ID}.affirm-thor.com"
+      rm -rf "$ALL_THE_THINGS_DIR"
+      git clone --depth 1 git@github.com:Affirm/all-the-things.git "$ALL_THE_THINGS_DIR"
+      PYTHON_BIN="${PYTHON_BIN:-python3.9}"
+      if ! command -v "$PYTHON_BIN" >/dev/null 2>&1; then
+        PYTHON_BIN=python3
+      fi
+      "$PYTHON_BIN" -c 'import sys; raise SystemExit("Upfunnel test framework requires Python 3.9+") if sys.version_info < (3, 9) else None'
+      "$PYTHON_BIN" -m venv .upfunnel-promo-thor-venv
+      . .upfunnel-promo-thor-venv/bin/activate
+      python -m pip install --upgrade pip uv
+      uv pip install -e "$ALL_THE_THINGS_DIR/test_framework/tests/e2e"
+      python tools/buildkite/create_upfunnel_promo_thor_merchant.py --backend-url "$BACKEND_URL"
+      printf 'AFFIRM_PROMO_BASE_URL=%q\n' "$BACKEND_URL" >> upfunnel-promo-thor.env
+    agents:
+      queue: android
+    artifact_paths:
+      - upfunnel-promo-thor.env
+    plugins:
+      - docker#v3.3.0:
+          image: ${LINUX_IMAGE}
+          workdir: "/app"
+          environment:
+            - "ALL_THE_THINGS_DIR"
+            - "BUILDKITE_BRANCH"
+            - "BUILDKITE_BUILD_NUMBER"
+            - "BUILDKITE_JOB_ID"
+          shell: [ "/bin/bash", "-e", "-c" ]
+
+  - wait
+
+  - key: ios-sdk-upfunnel-promo-thor-test
+    label: Dispatch iOS SDK promo messaging Thor UI test
+    depends_on: [ "create-thor-merchant" ]
+    commands: |
+      buildkite-agent artifact download upfunnel-promo-thor.env .
+      . upfunnel-promo-thor.env
+      python3 tools/buildkite/dispatch_upfunnel_promo_thor_uitest.py
+    env:
+      IOS_SDK_GITHUB_REPOSITORY: Affirm/affirm-merchant-sdk-ios
+      IOS_SDK_GITHUB_WORKFLOW_ID: ui-tests.yml
+      IOS_SDK_GITHUB_REF: "${BUILDKITE_BRANCH}"
+      IOS_SDK_GITHUB_SHA: "${BUILDKITE_COMMIT}"
+    agents:
+      queue: android
+    plugins:
+      - ssh://git@github.com/affirm/aws-sm-buildkite-plugin.git#v2.3.1:
+          env:
+            GITHUB_API_KEY:
+              json-key: .GITHUB_API_KEY
+              secret-id: buildkite/github/api-key
+      - docker#v3.3.0:
+          image: ${LINUX_IMAGE}
+          workdir: "/app"
+          environment:
+            - "AFFIRM_EXPECTED_PROMO_TEXT"
+            - "AFFIRM_PROMO_BASE_URL"
+            - "AFFIRM_PROMO_EXTERNAL_ID"
+            - "AFFIRM_PUBLIC_KEY"
+            - "BUILDKITE_BRANCH"
+            - "BUILDKITE_COMMIT"
+            - "BUILDKITE_BUILD_NUMBER"
+            - "BUILDKITE_JOB_ID"
+            - "GITHUB_API_KEY"
+            - "IOS_SDK_GITHUB_REF"
+            - "IOS_SDK_GITHUB_REPOSITORY"
+            - "IOS_SDK_GITHUB_SHA"
+            - "IOS_SDK_GITHUB_WORKFLOW_ID"
+          shell: [ "/bin/bash", "-e", "-c" ]
+    retry:
+      manual:
+        permit_on_passed: true
+      automatic:
+        - exit_status: -1
+          limit: 2
+        - exit_status: 255
+          limit: 2
