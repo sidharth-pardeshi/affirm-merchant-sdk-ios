@@ -90,6 +90,7 @@ steps:
             - "BUILDKITE_COMMIT"
             - "BUILDKITE_BUILD_NUMBER"
             - "BUILDKITE_JOB_ID"
+            - "BUILDKITE_PULL_REQUEST_REPO"
             - "GITHUB_API_KEY"
             - "IOS_SDK_GITHUB_REF"
             - "IOS_SDK_GITHUB_REPOSITORY"

@@ -28,6 +28,33 @@ def require_env(name: str) -> str:
     return value
 
 
+def repository_from_url(url: str | None) -> str | None:
+    if url is None:
+        return None
+
+    parsed = urllib.parse.urlparse(url)
+    path = parsed.path.lstrip("/")
+    if path.endswith(".git"):
+        path = path[:-4]
+    parts = [part for part in path.split("/") if part]
+    if len(parts) >= 2:
+        return "/".join(parts[-2:])
+    return None
+
+
+def normalize_repository_and_ref(repository: str, ref: str, pull_request_repo: str | None) -> tuple[str, str]:
+    if ":" not in ref:
+        return repository, ref
+
+    fork_owner, fork_ref = ref.split(":", 1)
+    fork_repository = repository_from_url(pull_request_repo)
+    if fork_repository is None:
+        repo_name = repository.rsplit("/", 1)[-1]
+        fork_repository = f"{fork_owner}/{repo_name}"
+
+    return fork_repository, fork_ref
+
+
 def github_request(
     token: str,
     method: str,
@@ -144,6 +171,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--repository", default=env("IOS_SDK_GITHUB_REPOSITORY", DEFAULT_REPOSITORY))
     parser.add_argument("--workflow-id", default=env("IOS_SDK_GITHUB_WORKFLOW_ID", DEFAULT_WORKFLOW_ID))
     parser.add_argument("--ref", default=env("IOS_SDK_GITHUB_REF", env("BUILDKITE_BRANCH")))
+    parser.add_argument("--pull-request-repo", default=env("BUILDKITE_PULL_REQUEST_REPO"))
     parser.add_argument("--commit-sha", default=env("IOS_SDK_GITHUB_SHA", env("BUILDKITE_COMMIT")))
     parser.add_argument("--timeout-seconds", type=int, default=int(env("IOS_SDK_GITHUB_WORKFLOW_TIMEOUT_SECONDS", "3600")))
     return parser.parse_args()
@@ -156,6 +184,7 @@ def main() -> None:
         raise SystemExit("GITHUB_API_KEY, GITHUB_TOKEN, or GH_TOKEN must be set")
     if args.ref is None:
         raise SystemExit("IOS_SDK_GITHUB_REF or BUILDKITE_BRANCH must be set")
+    repository, ref = normalize_repository_and_ref(args.repository, args.ref, args.pull_request_repo)
 
     inputs = {
         "run_upfunnel_promo_thor_test": "true",
@@ -169,14 +198,14 @@ def main() -> None:
     }
 
     dispatched_after = dt.datetime.now(dt.timezone.utc) - dt.timedelta(seconds=5)
-    dispatch_workflow(token, args.repository, args.workflow_id, args.ref, inputs)
-    print(f"Dispatched {args.workflow_id} on {args.repository}@{args.ref}", flush=True)
+    dispatch_workflow(token, repository, args.workflow_id, ref, inputs)
+    print(f"Dispatched {args.workflow_id} on {repository}@{ref}", flush=True)
 
     run = wait_for_run(
         token,
-        args.repository,
+        repository,
         args.workflow_id,
-        args.ref,
+        ref,
         args.commit_sha,
         dispatched_after,
         args.timeout_seconds,
