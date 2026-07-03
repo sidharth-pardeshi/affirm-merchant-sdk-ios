@@ -42,9 +42,21 @@ def repository_from_url(url: str | None) -> str | None:
     return None
 
 
-def normalize_repository_and_ref(repository: str, ref: str, pull_request_repo: str | None) -> tuple[str, str]:
+def normalize_repository_and_ref(
+    repository: str,
+    ref: str,
+    pull_request_repo: str | None,
+    pull_request_number: str | None,
+    commit_sha: str | None,
+) -> tuple[str, str]:
     if ":" not in ref:
         return repository, ref
+
+    if pull_request_number and pull_request_number not in ("false", "False"):
+        return repository, f"refs/pull/{pull_request_number}/head"
+
+    if commit_sha:
+        return repository, commit_sha
 
     fork_owner, fork_ref = ref.split(":", 1)
     fork_repository = repository_from_url(pull_request_repo)
@@ -99,15 +111,15 @@ def workflow_runs(
     token: str,
     repository: str,
     workflow_id: str,
-    branch: str,
+    branch: str | None,
 ) -> list[dict[str, object]]:
-    query = urllib.parse.urlencode(
-        {
-            "event": "workflow_dispatch",
-            "branch": branch,
-            "per_page": "20",
-        },
-    )
+    query_params = {
+        "event": "workflow_dispatch",
+        "per_page": "20",
+    }
+    if branch:
+        query_params["branch"] = branch
+    query = urllib.parse.urlencode(query_params)
     path = f"/repos/{repository}/actions/workflows/{urllib.parse.quote(workflow_id)}/runs?{query}"
     _, payload = github_request(token, "GET", path)
     if payload is None:
@@ -138,7 +150,7 @@ def wait_for_run(
     token: str,
     repository: str,
     workflow_id: str,
-    branch: str,
+    branch: str | None,
     commit_sha: str | None,
     dispatched_after: dt.datetime,
     timeout_seconds: int,
@@ -172,6 +184,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--workflow-id", default=env("IOS_SDK_GITHUB_WORKFLOW_ID", DEFAULT_WORKFLOW_ID))
     parser.add_argument("--ref", default=env("IOS_SDK_GITHUB_REF", env("BUILDKITE_BRANCH")))
     parser.add_argument("--pull-request-repo", default=env("BUILDKITE_PULL_REQUEST_REPO"))
+    parser.add_argument("--pull-request-number", default=env("BUILDKITE_PULL_REQUEST"))
     parser.add_argument("--commit-sha", default=env("IOS_SDK_GITHUB_SHA", env("BUILDKITE_COMMIT")))
     parser.add_argument("--timeout-seconds", type=int, default=int(env("IOS_SDK_GITHUB_WORKFLOW_TIMEOUT_SECONDS", "3600")))
     return parser.parse_args()
@@ -184,7 +197,13 @@ def main() -> None:
         raise SystemExit("GITHUB_API_KEY, GITHUB_TOKEN, or GH_TOKEN must be set")
     if args.ref is None:
         raise SystemExit("IOS_SDK_GITHUB_REF or BUILDKITE_BRANCH must be set")
-    repository, ref = normalize_repository_and_ref(args.repository, args.ref, args.pull_request_repo)
+    repository, ref = normalize_repository_and_ref(
+        args.repository,
+        args.ref,
+        args.pull_request_repo,
+        args.pull_request_number,
+        args.commit_sha,
+    )
 
     inputs = {
         "run_upfunnel_promo_thor_test": "true",
@@ -198,14 +217,27 @@ def main() -> None:
     }
 
     dispatched_after = dt.datetime.now(dt.timezone.utc) - dt.timedelta(seconds=5)
-    dispatch_workflow(token, repository, args.workflow_id, ref, inputs)
+    try:
+        dispatch_workflow(token, repository, args.workflow_id, ref, inputs)
+    except RuntimeError as error:
+        if ref.startswith("refs/pull/") and args.commit_sha:
+            print(
+                f"Workflow dispatch at {ref} failed; retrying with commit {args.commit_sha}: {error}",
+                flush=True,
+            )
+            ref = args.commit_sha
+            dispatched_after = dt.datetime.now(dt.timezone.utc) - dt.timedelta(seconds=5)
+            dispatch_workflow(token, repository, args.workflow_id, ref, inputs)
+        else:
+            raise
     print(f"Dispatched {args.workflow_id} on {repository}@{ref}", flush=True)
 
+    lookup_branch = None if ref.startswith("refs/pull/") or ref == args.commit_sha else ref
     run = wait_for_run(
         token,
         repository,
         args.workflow_id,
-        ref,
+        lookup_branch,
         args.commit_sha,
         dispatched_after,
         args.timeout_seconds,
