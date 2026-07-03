@@ -13,7 +13,7 @@ steps:
       branch: main
       message: Provision Thor for iOS Merchant SDK promo messaging tests on $BUILDKITE_BRANCH
       meta_data:
-        dts: [ "superapp" ]
+        dts: [ "superapp", "upfunnel" ]
         caller: affirm-merchant-sdk-ios
         mode: live
         country_code: us
