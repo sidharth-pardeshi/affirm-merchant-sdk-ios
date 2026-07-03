@@ -35,6 +35,7 @@ jobs:
           -scheme ExamplesUITests \
           -derivedDataPath "$UPFUNNEL_XCTEST_DERIVED_DATA" \
           -sdk iphoneos \
+          CODE_SIGNING_ALLOWED=NO \
           build-for-testing
         mkdir -p "$UPFUNNEL_XCTEST_PACKAGE_DIR"
         cp -R "$UPFUNNEL_XCTEST_DERIVED_DATA/Build/Products/Debug-iphoneos" "$UPFUNNEL_XCTEST_PACKAGE_DIR/"
