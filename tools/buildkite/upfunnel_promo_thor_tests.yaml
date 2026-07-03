@@ -92,7 +92,9 @@ steps:
     depends_on: [ "create-thor-merchant" ]
     commands: |
       buildkite-agent artifact download upfunnel-promo-thor.env .
+      set -a
       . upfunnel-promo-thor.env
+      set +a
       python3 tools/buildkite/dispatch_upfunnel_promo_thor_uitest.py
     env:
       IOS_SDK_GITHUB_REPOSITORY: Affirm/affirm-merchant-sdk-ios
