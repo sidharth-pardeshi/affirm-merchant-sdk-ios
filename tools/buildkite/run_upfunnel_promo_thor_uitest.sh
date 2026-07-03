@@ -33,6 +33,7 @@ IOS_XCTEST_ZIP="${IOS_XCTEST_ZIP:-build/UpfunnelPromoThorXCTest.zip}"
 IOS_XCTEST_PATCHED_ZIP="${IOS_XCTEST_PATCHED_ZIP:-build/UpfunnelPromoThorXCTest.patched.zip}"
 IOS_ONLY_TESTING="${IOS_ONLY_TESTING:-ExamplesUITests/UpfunnelPromoMessagingThorUITests/testPromoButtonRendersAlaFromThorService}"
 IOS_FIREBASE_RESULTS_BUCKET="${IOS_FIREBASE_RESULTS_BUCKET:-firebase-affirm-ios}"
+IOS_FIREBASE_NUM_FLAKY_TEST_ATTEMPTS="${IOS_FIREBASE_NUM_FLAKY_TEST_ATTEMPTS:-2}"
 
 : "${AFFIRM_PROMO_BASE_URL:?AFFIRM_PROMO_BASE_URL must be set, e.g. https://<thor-id>.affirm-thor.com}"
 : "${AFFIRM_PUBLIC_KEY:?AFFIRM_PUBLIC_KEY must be set to the Thor merchant public key}"
@@ -103,5 +104,6 @@ gcloud firebase test ios run \
   --results-bucket "$IOS_FIREBASE_RESULTS_BUCKET" \
   --results-dir "upfunnel-promo-sdk-${BUILDKITE_BUILD_NUMBER:-local}-${BUILDKITE_JOB_ID:-manual}" \
   --client-details "matrixLabel=Upfunnel iOS SDK promo Thor test,buildkiteBuild=${BUILDKITE_BUILD_NUMBER:-local},commit=${IOS_XCTEST_GITHUB_SHA}" \
+  --num-flaky-test-attempts "$IOS_FIREBASE_NUM_FLAKY_TEST_ATTEMPTS" \
   --timeout 10m \
   2>&1 | tee "$FIREBASE_TEST_LOG"
