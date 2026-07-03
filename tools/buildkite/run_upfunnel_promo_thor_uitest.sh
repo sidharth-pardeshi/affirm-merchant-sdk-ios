@@ -23,32 +23,74 @@ AFFIRM_EXPECTED_PROMO_TEXT="${AFFIRM_EXPECTED_PROMO_TEXT:-Affirm}"
 AFFIRM_COUNTRY_CODE="${AFFIRM_COUNTRY_CODE:-USA}"
 AFFIRM_LOCALE="${AFFIRM_LOCALE:-en_US}"
 AFFIRM_CURRENCY="${AFFIRM_CURRENCY:-USD}"
-IOS_DESTINATION="${IOS_DESTINATION:-platform=iOS Simulator,name=iPhone 15}"
-RESULT_BUNDLE_PATH="${RESULT_BUNDLE_PATH:-build/UpfunnelPromoThorUITests.xcresult}"
+FIREBASE_PROJECT="${FIREBASE_PROJECT:-firebase-affirm}"
+FIREBASE_TEST_LOG="${FIREBASE_TEST_LOG:-firebase-ios-test-lab.log}"
+IOS_XCTEST_ARTIFACT_NAME="${IOS_XCTEST_ARTIFACT_NAME:-UpfunnelPromoThorXCTest}"
+IOS_XCTEST_GITHUB_REPOSITORY="${IOS_XCTEST_GITHUB_REPOSITORY:-Affirm/affirm-merchant-sdk-ios}"
+IOS_XCTEST_GITHUB_SHA="${IOS_XCTEST_GITHUB_SHA:-${BUILDKITE_COMMIT:-}}"
+IOS_XCTEST_GITHUB_WORKFLOW_ID="${IOS_XCTEST_GITHUB_WORKFLOW_ID:-ui-tests.yml}"
+IOS_XCTEST_ZIP="${IOS_XCTEST_ZIP:-build/UpfunnelPromoThorXCTest.zip}"
+IOS_XCTEST_PATCHED_ZIP="${IOS_XCTEST_PATCHED_ZIP:-build/UpfunnelPromoThorXCTest.patched.zip}"
+IOS_ONLY_TESTING="${IOS_ONLY_TESTING:-ExamplesUITests/UpfunnelPromoMessagingThorUITests/testPromoButtonRendersAlaFromThorService}"
+IOS_FIREBASE_RESULTS_BUCKET="${IOS_FIREBASE_RESULTS_BUCKET:-firebase-affirm-ios}"
 
 : "${AFFIRM_PROMO_BASE_URL:?AFFIRM_PROMO_BASE_URL must be set, e.g. https://<thor-id>.affirm-thor.com}"
 : "${AFFIRM_PUBLIC_KEY:?AFFIRM_PUBLIC_KEY must be set to the Thor merchant public key}"
+: "${GITHUB_API_KEY:?GITHUB_API_KEY must be set so the Buildkite job can download the GitHub Actions XCTest artifact}"
+: "${IOS_XCTEST_GITHUB_SHA:?IOS_XCTEST_GITHUB_SHA or BUILDKITE_COMMIT must be set}"
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT_DIR"
 
-cd Examples
-pod install --verbose --repo-update
-cd ..
+python3 tools/buildkite/download_github_actions_artifact.py \
+  --repository "$IOS_XCTEST_GITHUB_REPOSITORY" \
+  --workflow-id "$IOS_XCTEST_GITHUB_WORKFLOW_ID" \
+  --commit-sha "$IOS_XCTEST_GITHUB_SHA" \
+  --artifact-name "$IOS_XCTEST_ARTIFACT_NAME" \
+  --output "$IOS_XCTEST_ZIP"
 
-rm -rf "$RESULT_BUNDLE_PATH"
+python3 tools/buildkite/patch_xctestrun_environment.py \
+  --input "$IOS_XCTEST_ZIP" \
+  --output "$IOS_XCTEST_PATCHED_ZIP" \
+  --only-testing "$IOS_ONLY_TESTING" \
+  --env "AFFIRM_PROMO_BASE_URL=$AFFIRM_PROMO_BASE_URL" \
+  --env "AFFIRM_PUBLIC_KEY=$AFFIRM_PUBLIC_KEY" \
+  --env "AFFIRM_PROMO_EXTERNAL_ID=$AFFIRM_PROMO_EXTERNAL_ID" \
+  --env "AFFIRM_EXPECTED_PROMO_TEXT=$AFFIRM_EXPECTED_PROMO_TEXT" \
+  --env "AFFIRM_COUNTRY_CODE=$AFFIRM_COUNTRY_CODE" \
+  --env "AFFIRM_LOCALE=$AFFIRM_LOCALE" \
+  --env "AFFIRM_CURRENCY=$AFFIRM_CURRENCY"
 
-AFFIRM_PROMO_BASE_URL="$AFFIRM_PROMO_BASE_URL" \
-AFFIRM_PUBLIC_KEY="$AFFIRM_PUBLIC_KEY" \
-AFFIRM_PROMO_EXTERNAL_ID="$AFFIRM_PROMO_EXTERNAL_ID" \
-AFFIRM_EXPECTED_PROMO_TEXT="$AFFIRM_EXPECTED_PROMO_TEXT" \
-AFFIRM_COUNTRY_CODE="$AFFIRM_COUNTRY_CODE" \
-AFFIRM_LOCALE="$AFFIRM_LOCALE" \
-AFFIRM_CURRENCY="$AFFIRM_CURRENCY" \
-xcodebuild \
-  -workspace Examples/Examples.xcworkspace \
-  -scheme ExamplesUITests \
-  -destination "$IOS_DESTINATION" \
-  -only-testing:ExamplesUITests/UpfunnelPromoMessagingThorUITests/testPromoButtonRendersAlaFromThorService \
-  -resultBundlePath "$RESULT_BUNDLE_PATH" \
-  test
+if ! command -v gcloud >/dev/null 2>&1; then
+  if command -v apt-get >/dev/null 2>&1; then
+    apt-get update
+    apt-get install -y ca-certificates curl gnupg
+    install -d -m 0755 /usr/share/keyrings
+    curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg \
+      | gpg --dearmor -o /usr/share/keyrings/cloud.google.gpg
+    echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" \
+      > /etc/apt/sources.list.d/google-cloud-sdk.list
+    apt-get update
+    apt-get install -y google-cloud-cli
+  else
+    echo "gcloud is required for Firebase Test Lab, and this image does not support apt-get installation." >&2
+    exit 2
+  fi
+fi
+
+if [[ -n "${FIREBASE_SERVICE_ACCOUNT:-}" ]]; then
+  firebase_credentials="$(mktemp)"
+  printf "%s" "$FIREBASE_SERVICE_ACCOUNT" > "$firebase_credentials"
+  gcloud auth activate-service-account --key-file="$firebase_credentials"
+fi
+
+gcloud config set project "$FIREBASE_PROJECT"
+
+gcloud firebase test ios run \
+  --type xctest \
+  --test "$IOS_XCTEST_PATCHED_ZIP" \
+  --results-bucket "$IOS_FIREBASE_RESULTS_BUCKET" \
+  --results-dir "upfunnel-promo-sdk-${BUILDKITE_BUILD_NUMBER:-local}-${BUILDKITE_JOB_ID:-manual}" \
+  --client-details "matrixLabel=Upfunnel iOS SDK promo Thor test,buildkiteBuild=${BUILDKITE_BUILD_NUMBER:-local},commit=${IOS_XCTEST_GITHUB_SHA}" \
+  --timeout 10m \
+  2>&1 | tee "$FIREBASE_TEST_LOG"
