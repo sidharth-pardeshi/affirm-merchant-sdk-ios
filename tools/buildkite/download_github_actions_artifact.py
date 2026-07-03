@@ -39,6 +39,11 @@ def github_request(token: str, path: str) -> dict[str, object]:
 
 
 def download(token: str, url: str, destination: pathlib.Path) -> None:
+    class NoRedirectHandler(urllib.request.HTTPRedirectHandler):
+        def redirect_request(self, req, fp, code, msg, headers, newurl):
+            return None
+
+    opener = urllib.request.build_opener(NoRedirectHandler)
     request = urllib.request.Request(
         url,
         headers={
@@ -47,12 +52,26 @@ def download(token: str, url: str, destination: pathlib.Path) -> None:
             "X-GitHub-Api-Version": "2022-11-28",
         },
     )
+
     try:
-        with urllib.request.urlopen(request, timeout=120) as response, destination.open("wb") as output:
+        opener.open(request, timeout=30)
+    except urllib.error.HTTPError as error:
+        if error.code not in (301, 302, 303, 307, 308):
+            details = error.read().decode("utf-8", errors="replace")
+            raise RuntimeError(f"GitHub artifact download failed: {error.code} {details}") from error
+        redirect_url = error.headers.get("Location")
+        if redirect_url is None:
+            raise RuntimeError(f"GitHub artifact download redirect did not include Location header: {error.code}") from error
+    else:
+        raise RuntimeError("GitHub artifact download did not return the expected signed artifact redirect")
+
+    signed_request = urllib.request.Request(urllib.parse.urljoin(url, redirect_url))
+    try:
+        with urllib.request.urlopen(signed_request, timeout=120) as response, destination.open("wb") as output:
             shutil.copyfileobj(response, output)
     except urllib.error.HTTPError as error:
         details = error.read().decode("utf-8", errors="replace")
-        raise RuntimeError(f"GitHub artifact download failed: {error.code} {details}") from error
+        raise RuntimeError(f"Signed GitHub artifact download failed: {error.code} {details}") from error
 
 
 def workflow_runs(
