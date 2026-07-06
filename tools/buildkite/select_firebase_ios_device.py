@@ -152,8 +152,8 @@ def main():
 
             candidates.append(
                 (
-                    capacity_rank,
                     version_sort_key(version),
+                    capacity_rank,
                     model.get("name", ""),
                     model_id,
                     version_id,
