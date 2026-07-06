@@ -33,7 +33,7 @@ IOS_XCTEST_ZIP="${IOS_XCTEST_ZIP:-build/UpfunnelPromoThorXCTest.zip}"
 IOS_XCTEST_PATCHED_ZIP="${IOS_XCTEST_PATCHED_ZIP:-build/UpfunnelPromoThorXCTest.patched.zip}"
 IOS_ONLY_TESTING="${IOS_ONLY_TESTING:-ExamplesUITests/UpfunnelPromoMessagingThorUITests/testPromoButtonRendersAlaFromThorService}"
 IOS_FIREBASE_RESULTS_BUCKET="${IOS_FIREBASE_RESULTS_BUCKET:-firebase-affirm-ios}"
-IOS_FIREBASE_DEVICE="${IOS_FIREBASE_DEVICE:-model=iphone15,version=17.5,locale=en,orientation=portrait}"
+IOS_FIREBASE_DEVICE="${IOS_FIREBASE_DEVICE:-model=iphone14pro,version=17.5,locale=en,orientation=portrait}"
 IOS_FIREBASE_NUM_FLAKY_TEST_ATTEMPTS="${IOS_FIREBASE_NUM_FLAKY_TEST_ATTEMPTS:-2}"
 IOS_FIREBASE_XCODE_VERSION="${IOS_FIREBASE_XCODE_VERSION:-15.4}"
 
