@@ -33,7 +33,7 @@ IOS_XCTEST_ZIP="${IOS_XCTEST_ZIP:-build/UpfunnelPromoThorXCTest.zip}"
 IOS_XCTEST_PATCHED_ZIP="${IOS_XCTEST_PATCHED_ZIP:-build/UpfunnelPromoThorXCTest.patched.zip}"
 IOS_ONLY_TESTING="${IOS_ONLY_TESTING:-ExamplesUITests/UpfunnelPromoMessagingThorUITests/testPromoButtonRendersAlaFromThorService}"
 IOS_FIREBASE_RESULTS_BUCKET="${IOS_FIREBASE_RESULTS_BUCKET:-firebase-affirm-ios}"
-IOS_FIREBASE_DEVICE="${IOS_FIREBASE_DEVICE:-model=iphone14pro,version=16.6,locale=en,orientation=portrait}"
+IOS_FIREBASE_DEVICE="${IOS_FIREBASE_DEVICE:-}"
 IOS_FIREBASE_NUM_FLAKY_TEST_ATTEMPTS="${IOS_FIREBASE_NUM_FLAKY_TEST_ATTEMPTS:-2}"
 IOS_FIREBASE_XCODE_VERSION="${IOS_FIREBASE_XCODE_VERSION:-}"
 
@@ -99,6 +99,10 @@ if [[ -n "${FIREBASE_SERVICE_ACCOUNT:-}" ]]; then
 fi
 
 gcloud config set project "$FIREBASE_PROJECT"
+
+if [[ -z "$IOS_FIREBASE_DEVICE" ]]; then
+  IOS_FIREBASE_DEVICE="$(python3 tools/buildkite/select_firebase_ios_device.py --project "$FIREBASE_PROJECT")"
+fi
 
 firebase_test_args=(
   firebase test ios run
