@@ -12,6 +12,7 @@ jobs:
     runs-on: macos-14
     env:
       UPFUNNEL_XCTEST_DERIVED_DATA: build/UpfunnelPromoThorDerivedData
+      UPFUNNEL_XCTEST_DEVELOPER_DIR: /Applications/Xcode_15.0.1.app/Contents/Developer
       UPFUNNEL_XCTEST_PACKAGE_DIR: build/UpfunnelPromoThorXCTest
       UPFUNNEL_XCTEST_ZIP: build/UpfunnelPromoThorXCTest.zip
     steps:
@@ -30,6 +31,8 @@ jobs:
     - name: Build Upfunnel Promo Thor XCTest bundle
       run: |
         rm -rf "$UPFUNNEL_XCTEST_DERIVED_DATA" "$UPFUNNEL_XCTEST_PACKAGE_DIR" "$UPFUNNEL_XCTEST_ZIP"
+        export DEVELOPER_DIR="$UPFUNNEL_XCTEST_DEVELOPER_DIR"
+        xcodebuild -version
         xcodebuild \
           -workspace Examples/Examples.xcworkspace \
           -scheme ExamplesUITests \
