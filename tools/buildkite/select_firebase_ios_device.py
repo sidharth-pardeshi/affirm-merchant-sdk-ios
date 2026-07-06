@@ -12,9 +12,20 @@ import urllib.request
 CAPACITY_RANK = {
     "DEVICE_CAPACITY_HIGH": 0,
     "DEVICE_CAPACITY_MEDIUM": 1,
-    "DEVICE_CAPACITY_LOW": 2,
-    "DEVICE_CAPACITY_UNSPECIFIED": 3,
+    "DEVICE_CAPACITY_LOW": 4,
+    "DEVICE_CAPACITY_UNSPECIFIED": 5,
+    "DEVICE_CAPACITY_NONE": 6,
 }
+
+
+def capacity_sort_key(capacity):
+    if capacity in {"DEVICE_CAPACITY_HIGH", "DEVICE_CAPACITY_MEDIUM"}:
+        return 0
+    elif capacity == "DEVICE_CAPACITY_LOW":
+        return 1
+    elif capacity == "DEVICE_CAPACITY_UNSPECIFIED":
+        return 2
+    return 3
 
 
 def version_sort_key(version):
@@ -102,6 +113,12 @@ def main():
         default=["iphone14pro:16.6"],
         help="Axis to avoid, formatted as model:version.",
     )
+    parser.add_argument(
+        "--limit",
+        type=int,
+        default=1,
+        help="Maximum number of device specs to print.",
+    )
     args = parser.parse_args()
 
     catalog = load_catalog(args.project)
@@ -148,12 +165,11 @@ def main():
                 continue
 
             capacity = capacity_by_version.get(version_id, "DEVICE_CAPACITY_UNSPECIFIED")
-            capacity_rank = CAPACITY_RANK.get(capacity, 3)
-
             candidates.append(
                 (
+                    capacity_sort_key(capacity),
                     version_sort_key(version),
-                    capacity_rank,
+                    CAPACITY_RANK.get(capacity, 5),
                     model.get("name", ""),
                     model_id,
                     version_id,
@@ -170,13 +186,15 @@ def main():
         )
         return 1
 
-    _, _, model_name, model_id, version_id, capacity = sorted(candidates)[0]
-    print(
-        f"Selected Firebase iOS device: {model_name} ({model_id}) iOS {version_id} "
-        f"with {capacity}",
-        file=sys.stderr,
-    )
-    print(f"model={model_id},version={version_id},locale=en,orientation=portrait")
+    for _, _, _, model_name, model_id, version_id, capacity in sorted(candidates)[
+        : max(1, args.limit)
+    ]:
+        print(
+            f"Selected Firebase iOS device candidate: {model_name} ({model_id}) "
+            f"iOS {version_id} with {capacity}",
+            file=sys.stderr,
+        )
+        print(f"model={model_id},version={version_id},locale=en,orientation=portrait")
     return 0
 
 

@@ -34,6 +34,7 @@ IOS_XCTEST_PATCHED_ZIP="${IOS_XCTEST_PATCHED_ZIP:-build/UpfunnelPromoThorXCTest.
 IOS_ONLY_TESTING="${IOS_ONLY_TESTING:-ExamplesUITests/UpfunnelPromoMessagingThorUITests/testPromoButtonRendersAlaFromThorService}"
 IOS_FIREBASE_RESULTS_BUCKET="${IOS_FIREBASE_RESULTS_BUCKET:-firebase-affirm-ios}"
 IOS_FIREBASE_DEVICE="${IOS_FIREBASE_DEVICE:-}"
+IOS_FIREBASE_DEVICE_ATTEMPTS="${IOS_FIREBASE_DEVICE_ATTEMPTS:-8}"
 IOS_FIREBASE_NUM_FLAKY_TEST_ATTEMPTS="${IOS_FIREBASE_NUM_FLAKY_TEST_ATTEMPTS:-2}"
 IOS_FIREBASE_XCODE_VERSION="${IOS_FIREBASE_XCODE_VERSION:-}"
 
@@ -101,23 +102,66 @@ fi
 gcloud config set project "$FIREBASE_PROJECT"
 
 if [[ -z "$IOS_FIREBASE_DEVICE" ]]; then
-  IOS_FIREBASE_DEVICE="$(python3 tools/buildkite/select_firebase_ios_device.py --project "$FIREBASE_PROJECT")"
+  mapfile -t IOS_FIREBASE_DEVICES < <(
+    python3 tools/buildkite/select_firebase_ios_device.py \
+      --project "$FIREBASE_PROJECT" \
+      --limit "$IOS_FIREBASE_DEVICE_ATTEMPTS"
+  )
+else
+  IOS_FIREBASE_DEVICES=("$IOS_FIREBASE_DEVICE")
 fi
 
-firebase_test_args=(
-  firebase test ios run
-  --type xctest \
-  --test "$IOS_XCTEST_PATCHED_ZIP" \
-  --device "$IOS_FIREBASE_DEVICE" \
-  --results-bucket "$IOS_FIREBASE_RESULTS_BUCKET" \
-  --results-dir "upfunnel-promo-sdk-${BUILDKITE_BUILD_NUMBER:-local}-${BUILDKITE_JOB_ID:-manual}" \
-  --client-details "matrixLabel=Upfunnel iOS SDK promo Thor test,buildkiteBuild=${BUILDKITE_BUILD_NUMBER:-local},commit=${IOS_XCTEST_GITHUB_SHA}" \
-  --num-flaky-test-attempts "$IOS_FIREBASE_NUM_FLAKY_TEST_ATTEMPTS" \
-  --timeout 10m
-)
-
-if [[ -n "$IOS_FIREBASE_XCODE_VERSION" ]]; then
-  firebase_test_args+=(--xcode-version "$IOS_FIREBASE_XCODE_VERSION")
+if [[ "${#IOS_FIREBASE_DEVICES[@]}" -eq 0 ]]; then
+  echo "No Firebase iOS device axes were selected." >&2
+  exit 1
 fi
 
-gcloud "${firebase_test_args[@]}" 2>&1 | tee "$FIREBASE_TEST_LOG"
+: > "$FIREBASE_TEST_LOG"
+last_status=1
+attempt=0
+
+for firebase_device in "${IOS_FIREBASE_DEVICES[@]}"; do
+  attempt=$((attempt + 1))
+  attempt_log="${FIREBASE_TEST_LOG%.log}-${attempt}.log"
+  results_dir="upfunnel-promo-sdk-${BUILDKITE_BUILD_NUMBER:-local}-${BUILDKITE_JOB_ID:-manual}-${attempt}"
+
+  echo "Running Firebase iOS test attempt ${attempt}/${#IOS_FIREBASE_DEVICES[@]} on ${firebase_device}" \
+    | tee -a "$FIREBASE_TEST_LOG"
+
+  firebase_test_args=(
+    firebase test ios run
+    --type xctest \
+    --test "$IOS_XCTEST_PATCHED_ZIP" \
+    --device "$firebase_device" \
+    --results-bucket "$IOS_FIREBASE_RESULTS_BUCKET" \
+    --results-dir "$results_dir" \
+    --client-details "matrixLabel=Upfunnel iOS SDK promo Thor test,buildkiteBuild=${BUILDKITE_BUILD_NUMBER:-local},commit=${IOS_XCTEST_GITHUB_SHA}" \
+    --num-flaky-test-attempts "$IOS_FIREBASE_NUM_FLAKY_TEST_ATTEMPTS" \
+    --timeout 10m
+  )
+
+  if [[ -n "$IOS_FIREBASE_XCODE_VERSION" ]]; then
+    firebase_test_args+=(--xcode-version "$IOS_FIREBASE_XCODE_VERSION")
+  fi
+
+  set +e
+  gcloud "${firebase_test_args[@]}" 2>&1 | tee "$attempt_log"
+  last_status=${PIPESTATUS[0]}
+  set -e
+
+  cat "$attempt_log" >> "$FIREBASE_TEST_LOG"
+
+  if [[ "$last_status" -eq 0 ]]; then
+    exit 0
+  fi
+
+  if grep -q "Infrastructure failure" "$attempt_log"; then
+    echo "Firebase infrastructure failure on ${firebase_device}; trying the next selected axis." \
+      | tee -a "$FIREBASE_TEST_LOG" >&2
+    continue
+  fi
+
+  exit "$last_status"
+done
+
+exit "$last_status"
