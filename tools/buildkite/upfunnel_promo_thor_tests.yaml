@@ -146,5 +146,9 @@ steps:
       automatic:
         - exit_status: -1
           limit: 2
+        # The Docker Buildkite plugin reports the infra-only Firebase retry
+        # case as status 1 even when the script exits with a custom status.
+        - exit_status: 1
+          limit: 2
         - exit_status: 255
           limit: 2

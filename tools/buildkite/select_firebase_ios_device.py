@@ -74,20 +74,20 @@ def has_deprecated_axis_tag(tags, version_id):
     return False
 
 
-def is_phone_model(model):
+def device_kind_sort_key(model):
     model_id = model.get("id", "").lower()
     model_name = model.get("name", "").lower()
     form_factor = model.get("formFactor", "").lower()
 
     if "tablet" in form_factor or model_id.startswith("ipad") or "ipad" in model_name:
-        return False
+        return 1
     if "phone" in form_factor or model_id.startswith("iphone") or "iphone" in model_name:
-        return True
+        return 0
 
     # The iOS catalog does not always expose the same formFactor values as the
-    # Android catalog. Treat unknown non-iPad models as candidates and let
-    # Firebase validate the final axis.
-    return True
+    # Android catalog. Treat unknown non-deprecated models as candidates and let
+    # Firebase validate the final axis, but prefer explicit iPhone/iPad models.
+    return 2
 
 
 def load_catalog(project):
@@ -125,7 +125,6 @@ def main():
     versions = {version["id"]: version for version in catalog.get("versions", [])}
     avoid_axes = set(args.avoid_axis)
     excluded_counts = {
-        "non_phone": 0,
         "deprecated_model": 0,
         "missing_version": 0,
         "avoided_axis": 0,
@@ -139,9 +138,6 @@ def main():
         model_tags = model.get("tags", [])
         if has_model_deprecated_tag(model_tags):
             excluded_counts["deprecated_model"] += 1
-            continue
-        if not is_phone_model(model):
-            excluded_counts["non_phone"] += 1
             continue
 
         capacity_by_version = {
@@ -168,6 +164,7 @@ def main():
             candidates.append(
                 (
                     capacity_sort_key(capacity),
+                    device_kind_sort_key(model),
                     version_sort_key(version),
                     CAPACITY_RANK.get(capacity, 5),
                     model.get("name", ""),
@@ -186,7 +183,7 @@ def main():
         )
         return 1
 
-    for _, _, _, model_name, model_id, version_id, capacity in sorted(candidates)[
+    for _, _, _, _, model_name, model_id, version_id, capacity in sorted(candidates)[
         : max(1, args.limit)
     ]:
         print(
