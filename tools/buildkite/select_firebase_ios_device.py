@@ -119,6 +119,12 @@ def main():
         default=1,
         help="Maximum number of device specs to print.",
     )
+    parser.add_argument(
+        "--max-major-version",
+        type=int,
+        default=17,
+        help="Maximum iOS major version to select.",
+    )
     args = parser.parse_args()
 
     catalog = load_catalog(args.project)
@@ -130,6 +136,7 @@ def main():
         "avoided_axis": 0,
         "deprecated_axis": 0,
         "reduced_stability": 0,
+        "unsupported_major_version": 0,
     }
     candidates = []
 
@@ -149,6 +156,9 @@ def main():
             version = versions.get(version_id)
             if not version:
                 excluded_counts["missing_version"] += 1
+                continue
+            if int(version.get("majorVersion", 0)) > args.max_major_version:
+                excluded_counts["unsupported_major_version"] += 1
                 continue
             if f"{model_id}:{version_id}" in avoid_axes:
                 excluded_counts["avoided_axis"] += 1
