@@ -45,12 +45,16 @@ def repository_from_url(url: str | None) -> str | None:
 def normalize_repository_and_ref(
     repository: str,
     ref: str,
+    pull_request: str | None,
     pull_request_repo: str | None,
 ) -> tuple[str, str]:
     if ":" not in ref:
         return repository, ref
 
     fork_owner, fork_ref = ref.split(":", 1)
+    if pull_request and pull_request.isdigit():
+        return repository, f"refs/pull/{pull_request}/head"
+
     fork_repository = repository_from_url(pull_request_repo)
     if fork_repository is None:
         repo_name = repository.rsplit("/", 1)[-1]
@@ -105,13 +109,13 @@ def workflow_runs(
     workflow_id: str,
     branch: str,
 ) -> list[dict[str, object]]:
-    query = urllib.parse.urlencode(
-        {
-            "event": "workflow_dispatch",
-            "branch": branch,
-            "per_page": "20",
-        },
-    )
+    query_params = {
+        "event": "workflow_dispatch",
+        "per_page": "20",
+    }
+    if not branch.startswith("refs/pull/"):
+        query_params["branch"] = branch
+    query = urllib.parse.urlencode(query_params)
     path = f"/repos/{repository}/actions/workflows/{urllib.parse.quote(workflow_id)}/runs?{query}"
     _, payload = github_request(token, "GET", path)
     if payload is None:
@@ -175,6 +179,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--repository", default=env("IOS_SDK_GITHUB_REPOSITORY", DEFAULT_REPOSITORY))
     parser.add_argument("--workflow-id", default=env("IOS_SDK_GITHUB_WORKFLOW_ID", DEFAULT_WORKFLOW_ID))
     parser.add_argument("--ref", default=env("IOS_SDK_GITHUB_REF", env("BUILDKITE_BRANCH")))
+    parser.add_argument("--pull-request", default=env("BUILDKITE_PULL_REQUEST"))
     parser.add_argument("--pull-request-repo", default=env("BUILDKITE_PULL_REQUEST_REPO"))
     parser.add_argument("--commit-sha", default=env("IOS_SDK_GITHUB_SHA", env("BUILDKITE_COMMIT")))
     parser.add_argument(
@@ -192,7 +197,12 @@ def main() -> None:
         raise SystemExit("GITHUB_API_KEY, GITHUB_TOKEN, or GH_TOKEN must be set")
     if args.ref is None:
         raise SystemExit("IOS_SDK_GITHUB_REF or BUILDKITE_BRANCH must be set")
-    repository, ref = normalize_repository_and_ref(args.repository, args.ref, args.pull_request_repo)
+    repository, ref = normalize_repository_and_ref(
+        args.repository,
+        args.ref,
+        args.pull_request,
+        args.pull_request_repo,
+    )
 
     inputs = {
         "run_upfunnel_promo_thor_test": "true",
