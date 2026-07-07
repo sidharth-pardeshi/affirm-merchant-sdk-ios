@@ -76,7 +76,7 @@ def github_request(
         method=method,
         headers={
             "Accept": "application/vnd.github+json",
-            "Authorization": f"Bearer {token}",
+            "Authorization": f"token {token}",
             "Content-Type": "application/json",
             "X-GitHub-Api-Version": "2022-11-28",
         },
