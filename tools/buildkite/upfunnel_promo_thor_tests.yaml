@@ -101,7 +101,6 @@ steps:
       - firebase-ios-test-lab*.log
     env:
       FIREBASE_PROJECT: firebase-affirm
-      IOS_FIREBASE_XCODE_VERSION: "15"
       IOS_XCTEST_ARTIFACT_NAME: UpfunnelPromoThorXCTest
       IOS_XCTEST_GITHUB_REPOSITORY: Affirm/affirm-merchant-sdk-ios
       IOS_XCTEST_GITHUB_SHA: "${BUILDKITE_COMMIT}"
@@ -136,7 +135,6 @@ steps:
             - "FIREBASE_PROJECT=firebase-affirm"
             - "FIREBASE_SERVICE_ACCOUNT"
             - "GITHUB_API_KEY"
-            - "IOS_FIREBASE_XCODE_VERSION"
             - "IOS_XCTEST_ARTIFACT_NAME"
             - "IOS_XCTEST_GITHUB_REPOSITORY"
             - "IOS_XCTEST_GITHUB_SHA"

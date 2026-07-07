@@ -130,6 +130,8 @@ fi
 
 gcloud config set project "$FIREBASE_PROJECT"
 
+gcloud firebase test ios versions list || true
+
 if [[ -z "$IOS_FIREBASE_DEVICE" ]]; then
   mapfile -t IOS_FIREBASE_DEVICES < <(
     python3 tools/buildkite/select_firebase_ios_device.py \
