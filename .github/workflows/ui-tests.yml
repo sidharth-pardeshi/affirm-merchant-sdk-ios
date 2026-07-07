@@ -43,6 +43,10 @@ jobs:
         mkdir -p "$UPFUNNEL_XCTEST_PACKAGE_DIR"
         cp -R "$UPFUNNEL_XCTEST_DERIVED_DATA/Build/Products/Debug-iphoneos" "$UPFUNNEL_XCTEST_PACKAGE_DIR/"
         cp "$UPFUNNEL_XCTEST_DERIVED_DATA"/Build/Products/*.xctestrun "$UPFUNNEL_XCTEST_PACKAGE_DIR/"
+        codesign --force --sign - --timestamp=none --deep "$UPFUNNEL_XCTEST_PACKAGE_DIR/Debug-iphoneos/Examples.app"
+        codesign --force --sign - --timestamp=none --deep "$UPFUNNEL_XCTEST_PACKAGE_DIR/Debug-iphoneos/ExamplesUITests-Runner.app"
+        codesign --verify --deep --verbose "$UPFUNNEL_XCTEST_PACKAGE_DIR/Debug-iphoneos/Examples.app"
+        codesign --verify --deep --verbose "$UPFUNNEL_XCTEST_PACKAGE_DIR/Debug-iphoneos/ExamplesUITests-Runner.app"
         (cd "$UPFUNNEL_XCTEST_PACKAGE_DIR" && zip -r "../$(basename "$UPFUNNEL_XCTEST_ZIP")" Debug-iphoneos *.xctestrun)
 
     - name: Upload Upfunnel Promo Thor XCTest bundle
