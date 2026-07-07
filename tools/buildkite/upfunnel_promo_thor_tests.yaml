@@ -108,7 +108,9 @@ steps:
     plugins:
       - ssh://git@github.com/affirm/aws-sm-buildkite-plugin.git#v2.3.1:
           env:
-            GITHUB_API_KEY: buildkite/monolith-ops/github-api-key
+            GITHUB_API_KEY:
+              json-key: .GITHUB_API_KEY
+              secret-id: buildkite/monolith-ops/github-api-key
       - docker#v3.3.0:
           image: ${LINUX_IMAGE}
           workdir: "/app"
