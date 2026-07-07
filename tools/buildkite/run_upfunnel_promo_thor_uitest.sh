@@ -7,6 +7,35 @@ buildkite_metadata() {
   fi
 }
 
+annotate_firebase_result() {
+  local attempt_log="$1"
+  local style="$2"
+  local context="$3"
+
+  if ! command -v buildkite-agent >/dev/null 2>&1; then
+    return 0
+  fi
+
+  local details_url
+  details_url="$(
+    awk '
+      /More details are/ {
+        for (i = 1; i <= NF; i++) {
+          if ($i ~ /^https?:\/\//) {
+            print $i
+            exit
+          }
+        }
+      }
+    ' "$attempt_log" | sed 's/[),.]*$//'
+  )"
+
+  if [[ -n "$details_url" ]]; then
+    printf 'Firebase iOS Test Lab results: %s\n' "$details_url" \
+      | buildkite-agent annotate --style "$style" --context "$context"
+  fi
+}
+
 if [[ -z "${AFFIRM_PROMO_BASE_URL:-}" ]]; then
   THOR_ID="$(buildkite_metadata "thor-id-us-live")"
   if [[ -n "$THOR_ID" ]]; then
@@ -138,6 +167,7 @@ for firebase_device in "${IOS_FIREBASE_DEVICES[@]}"; do
     --results-dir "$results_dir" \
     --client-details "matrixLabel=Upfunnel iOS SDK promo Thor test,buildkiteBuild=${BUILDKITE_BUILD_NUMBER:-local},commit=${IOS_XCTEST_GITHUB_SHA}" \
     --num-flaky-test-attempts "$IOS_FIREBASE_NUM_FLAKY_TEST_ATTEMPTS" \
+    --record-video \
     --timeout 10m
   )
 
@@ -153,16 +183,19 @@ for firebase_device in "${IOS_FIREBASE_DEVICES[@]}"; do
   cat "$attempt_log" >> "$FIREBASE_TEST_LOG"
 
   if [[ "$last_status" -eq 0 ]]; then
+    annotate_firebase_result "$attempt_log" success "firebase-ios-attempt-${attempt}"
     exit 0
   fi
 
   if grep -q "Infrastructure failure" "$attempt_log"; then
+    annotate_firebase_result "$attempt_log" warning "firebase-ios-attempt-${attempt}"
     infrastructure_failures=$((infrastructure_failures + 1))
     echo "Firebase infrastructure failure on ${firebase_device}; trying the next selected axis." \
       | tee -a "$FIREBASE_TEST_LOG" >&2
     continue
   fi
 
+  annotate_firebase_result "$attempt_log" error "firebase-ios-attempt-${attempt}"
   exit "$last_status"
 done
 

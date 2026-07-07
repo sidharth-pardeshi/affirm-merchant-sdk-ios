@@ -98,7 +98,7 @@ steps:
       tools/buildkite/run_upfunnel_promo_thor_uitest.sh
     artifact_paths:
       - upfunnel-promo-thor.env
-      - firebase-ios-test-lab.log
+      - firebase-ios-test-lab*.log
     env:
       FIREBASE_PROJECT: firebase-affirm
       IOS_XCTEST_ARTIFACT_NAME: UpfunnelPromoThorXCTest
