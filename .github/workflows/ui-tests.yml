@@ -9,10 +9,10 @@ on:
 
 jobs:
   build:
-    runs-on: macos-14
+    runs-on: macos-15
     env:
       UPFUNNEL_XCTEST_DERIVED_DATA: build/UpfunnelPromoThorDerivedData
-      UPFUNNEL_XCTEST_DEVELOPER_DIR: /Applications/Xcode_15.0.1.app/Contents/Developer
+      UPFUNNEL_XCTEST_DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer
       UPFUNNEL_XCTEST_PACKAGE_DIR: build/UpfunnelPromoThorXCTest
       UPFUNNEL_XCTEST_ZIP: build/UpfunnelPromoThorXCTest.zip
     steps:
@@ -23,10 +23,10 @@ jobs:
       run: cd Examples && pod install --verbose --repo-update && cd ..
       
     - name: Build
-      run: xcodebuild build-for-testing -workspace Examples/Examples.xcworkspace -scheme ExamplesUITests -destination "platform=iOS Simulator,name=iPhone 15"
+      run: xcodebuild build-for-testing -workspace Examples/Examples.xcworkspace -scheme ExamplesUITests -destination "platform=iOS Simulator,name=iPhone 16"
 
     - name: Test
-      run: xcodebuild -workspace Examples/Examples.xcworkspace -scheme ExamplesUITests -destination "platform=iOS Simulator,name=iPhone 15" test
+      run: xcodebuild -workspace Examples/Examples.xcworkspace -scheme ExamplesUITests -destination "platform=iOS Simulator,name=iPhone 16" test
 
     - name: Build Upfunnel Promo Thor XCTest bundle
       run: |

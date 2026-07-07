@@ -32,16 +32,18 @@ def version_sort_key(version):
     major = int(version.get("majorVersion", 0))
     minor = int(version.get("minorVersion", 0))
 
-    # Prefer iOS 17 for an Xcode 15 / iOS 17.0 XCTest bundle. Avoid iOS 18+ until
-    # Firebase video/result behavior and Xcode compatibility are intentionally updated.
-    if major == 17:
+    # Prefer the newest non-deprecated iOS generation supported by the pinned
+    # Firebase Xcode runner while still allowing older versions as fallbacks.
+    if major == 18:
         major_rank = 0
-    elif major == 16:
+    elif major == 17:
         major_rank = 1
-    elif major == 15:
+    elif major == 16:
         major_rank = 2
-    else:
+    elif major == 15:
         major_rank = 3
+    else:
+        major_rank = 4
 
     return major_rank, -major, -minor
 
@@ -122,7 +124,7 @@ def main():
     parser.add_argument(
         "--max-major-version",
         type=int,
-        default=17,
+        default=18,
         help="Maximum iOS major version to select.",
     )
     args = parser.parse_args()
