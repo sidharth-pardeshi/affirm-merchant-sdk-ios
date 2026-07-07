@@ -88,24 +88,21 @@ steps:
   - wait
 
   - key: ios-sdk-upfunnel-promo-thor-test
-    label: Run iOS SDK promo messaging test on Thor
+    label: Dispatch iOS SDK promo messaging Thor simulator test
     depends_on: [ "create-thor-merchant" ]
     commands: |
       buildkite-agent artifact download upfunnel-promo-thor.env .
       set -a
       . upfunnel-promo-thor.env
       set +a
-      tools/buildkite/run_upfunnel_promo_thor_uitest.sh
+      python3 tools/buildkite/dispatch_upfunnel_promo_thor_uitest.py
     artifact_paths:
       - upfunnel-promo-thor.env
-      - firebase-ios-test-lab*.log
     env:
-      FIREBASE_PROJECT: firebase-affirm
-      IOS_FIREBASE_XCODE_VERSION: "16.4"
-      IOS_XCTEST_ARTIFACT_NAME: UpfunnelPromoThorXCTest
-      IOS_XCTEST_GITHUB_REPOSITORY: Affirm/affirm-merchant-sdk-ios
-      IOS_XCTEST_GITHUB_SHA: "${BUILDKITE_COMMIT}"
-      IOS_XCTEST_GITHUB_WORKFLOW_ID: ui-tests.yml
+      IOS_SDK_GITHUB_REPOSITORY: Affirm/affirm-merchant-sdk-ios
+      IOS_SDK_GITHUB_WORKFLOW_ID: ui-tests.yml
+      IOS_SDK_GITHUB_REF: "${BUILDKITE_BRANCH}"
+      IOS_SDK_GITHUB_SHA: "${BUILDKITE_COMMIT}"
     agents:
       queue: android
     plugins:
@@ -114,11 +111,6 @@ steps:
             GITHUB_API_KEY:
               json-key: .GITHUB_API_KEY
               secret-id: buildkite/github/api-key
-      - seek-oss/aws-sm#v2.0.0:
-          env:
-            FIREBASE_SERVICE_ACCOUNT:
-              secret-id: buildkite/firebase/account
-              json-key: ".FIREBASE_SERVICE_ACCOUNT"
       - docker#v3.3.0:
           image: ${LINUX_IMAGE}
           workdir: "/app"
@@ -133,24 +125,17 @@ steps:
             - "BUILDKITE_JOB_ID"
             - "BUILDKITE_PULL_REQUEST"
             - "BUILDKITE_PULL_REQUEST_REPO"
-            - "FIREBASE_PROJECT=firebase-affirm"
-            - "FIREBASE_SERVICE_ACCOUNT"
             - "GITHUB_API_KEY"
-            - "IOS_FIREBASE_XCODE_VERSION"
-            - "IOS_XCTEST_ARTIFACT_NAME"
-            - "IOS_XCTEST_GITHUB_REPOSITORY"
-            - "IOS_XCTEST_GITHUB_SHA"
-            - "IOS_XCTEST_GITHUB_WORKFLOW_ID"
+            - "IOS_SDK_GITHUB_REF"
+            - "IOS_SDK_GITHUB_REPOSITORY"
+            - "IOS_SDK_GITHUB_SHA"
+            - "IOS_SDK_GITHUB_WORKFLOW_ID"
           shell: [ "/bin/bash", "-e", "-c" ]
     retry:
       manual:
         permit_on_passed: true
       automatic:
         - exit_status: -1
-          limit: 2
-        # The Docker Buildkite plugin reports the infra-only Firebase retry
-        # case as status 1 even when the script exits with a custom status.
-        - exit_status: 1
           limit: 2
         - exit_status: 255
           limit: 2
