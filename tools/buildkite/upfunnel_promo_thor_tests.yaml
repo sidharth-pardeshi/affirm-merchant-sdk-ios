@@ -110,7 +110,7 @@ steps:
           env:
             GITHUB_API_KEY:
               json-key: .GITHUB_API_KEY
-              secret-id: buildkite/github/api-key
+              secret-id: buildkite/monolith-ops/github-api-key
       - docker#v3.3.0:
           image: ${LINUX_IMAGE}
           workdir: "/app"
