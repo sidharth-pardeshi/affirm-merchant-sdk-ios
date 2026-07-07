@@ -119,6 +119,7 @@ fi
 : > "$FIREBASE_TEST_LOG"
 last_status=1
 attempt=0
+infrastructure_failures=0
 
 for firebase_device in "${IOS_FIREBASE_DEVICES[@]}"; do
   attempt=$((attempt + 1))
@@ -156,6 +157,7 @@ for firebase_device in "${IOS_FIREBASE_DEVICES[@]}"; do
   fi
 
   if grep -q "Infrastructure failure" "$attempt_log"; then
+    infrastructure_failures=$((infrastructure_failures + 1))
     echo "Firebase infrastructure failure on ${firebase_device}; trying the next selected axis." \
       | tee -a "$FIREBASE_TEST_LOG" >&2
     continue
@@ -163,5 +165,11 @@ for firebase_device in "${IOS_FIREBASE_DEVICES[@]}"; do
 
   exit "$last_status"
 done
+
+if [[ "$infrastructure_failures" -eq "${#IOS_FIREBASE_DEVICES[@]}" ]]; then
+  echo "All selected Firebase iOS device axes failed with infrastructure failures." \
+    | tee -a "$FIREBASE_TEST_LOG" >&2
+  exit 255
+fi
 
 exit "$last_status"
