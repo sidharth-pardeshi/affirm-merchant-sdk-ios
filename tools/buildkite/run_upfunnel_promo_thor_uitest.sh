@@ -64,7 +64,7 @@ IOS_ONLY_TESTING="${IOS_ONLY_TESTING:-ExamplesUITests/UpfunnelPromoMessagingThor
 IOS_FIREBASE_RESULTS_BUCKET="${IOS_FIREBASE_RESULTS_BUCKET:-firebase-affirm-ios}"
 IOS_FIREBASE_DEVICE="${IOS_FIREBASE_DEVICE:-}"
 IOS_FIREBASE_DEVICE_ATTEMPTS="${IOS_FIREBASE_DEVICE_ATTEMPTS:-8}"
-IOS_FIREBASE_NUM_FLAKY_TEST_ATTEMPTS="${IOS_FIREBASE_NUM_FLAKY_TEST_ATTEMPTS:-2}"
+IOS_FIREBASE_NUM_FLAKY_TEST_ATTEMPTS="${IOS_FIREBASE_NUM_FLAKY_TEST_ATTEMPTS:-0}"
 IOS_FIREBASE_XCODE_VERSION="${IOS_FIREBASE_XCODE_VERSION:-}"
 
 : "${AFFIRM_PROMO_BASE_URL:?AFFIRM_PROMO_BASE_URL must be set, e.g. https://<thor-id>.affirm-thor.com}"
@@ -168,10 +168,13 @@ for firebase_device in "${IOS_FIREBASE_DEVICES[@]}"; do
     --results-bucket "$IOS_FIREBASE_RESULTS_BUCKET" \
     --results-dir "$results_dir" \
     --client-details "matrixLabel=Upfunnel iOS SDK promo Thor test,buildkiteBuild=${BUILDKITE_BUILD_NUMBER:-local},commit=${IOS_XCTEST_GITHUB_SHA}" \
-    --num-flaky-test-attempts "$IOS_FIREBASE_NUM_FLAKY_TEST_ATTEMPTS" \
     --record-video \
     --timeout 10m
   )
+
+  if [[ "$IOS_FIREBASE_NUM_FLAKY_TEST_ATTEMPTS" =~ ^[1-9][0-9]*$ ]]; then
+    firebase_test_args+=(--num-flaky-test-attempts "$IOS_FIREBASE_NUM_FLAKY_TEST_ATTEMPTS")
+  fi
 
   if [[ -n "$IOS_FIREBASE_XCODE_VERSION" ]]; then
     firebase_test_args+=(--xcode-version "$IOS_FIREBASE_XCODE_VERSION")
