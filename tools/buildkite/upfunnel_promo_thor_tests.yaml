@@ -111,6 +111,15 @@ steps:
             GITHUB_API_KEY:
               json-key: .GITHUB_API_KEY
               secret-id: buildkite/github/api-key
+            GITHUB_BOT_APP_ID:
+              json-key: ".APP_ID"
+              secret-id: "buildkite/github/affirm_rules_app_secrets"
+            GITHUB_BOT_INSTALLATION_ID:
+              json-key: ".INSTALLATION_ID"
+              secret-id: "buildkite/github/affirm_rules_app_secrets"
+            GITHUB_BOT_PRIVATE_KEY:
+              json-key: ".PRIVATE_KEY"
+              secret-id: "buildkite/github/affirm_rules_app_secrets"
       - docker#v3.3.0:
           image: ${LINUX_IMAGE}
           workdir: "/app"
@@ -126,6 +135,9 @@ steps:
             - "BUILDKITE_PULL_REQUEST"
             - "BUILDKITE_PULL_REQUEST_REPO"
             - "GITHUB_API_KEY"
+            - "GITHUB_BOT_APP_ID"
+            - "GITHUB_BOT_INSTALLATION_ID"
+            - "GITHUB_BOT_PRIVATE_KEY"
             - "IOS_SDK_GITHUB_REF"
             - "IOS_SDK_GITHUB_REPOSITORY"
             - "IOS_SDK_GITHUB_SHA"

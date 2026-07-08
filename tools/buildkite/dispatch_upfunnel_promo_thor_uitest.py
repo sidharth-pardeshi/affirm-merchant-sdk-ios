@@ -2,10 +2,13 @@
 from __future__ import annotations
 
 import argparse
+import base64
 import datetime as dt
 import json
 import os
+import subprocess
 import sys
+import tempfile
 import time
 import urllib.error
 import urllib.parse
@@ -26,6 +29,41 @@ def require_env(name: str) -> str:
     if value is None:
         raise SystemExit(f"{name} must be set")
     return value
+
+
+def b64url(raw: bytes) -> str:
+    return base64.urlsafe_b64encode(raw).decode("ascii").rstrip("=")
+
+
+def sign_with_openssl(private_key_pem: str, signing_input: bytes) -> bytes:
+    with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", delete=True) as key_file:
+        key_file.write(private_key_pem)
+        key_file.flush()
+        result = subprocess.run(
+            ["openssl", "dgst", "-sha256", "-sign", key_file.name],
+            input=signing_input,
+            check=True,
+            stdout=subprocess.PIPE,
+        )
+    return result.stdout
+
+
+def create_github_app_jwt(app_id: str, private_key_pem: str) -> str:
+    now = int(time.time())
+    header = {"alg": "RS256", "typ": "JWT"}
+    payload = {
+        "iat": now - 60,
+        "exp": now + 540,
+        "iss": app_id,
+    }
+    signing_input = ".".join(
+        [
+            b64url(json.dumps(header, separators=(",", ":")).encode("utf-8")),
+            b64url(json.dumps(payload, separators=(",", ":")).encode("utf-8")),
+        ],
+    ).encode("ascii")
+    signature = sign_with_openssl(private_key_pem, signing_input)
+    return f"{signing_input.decode('ascii')}.{b64url(signature)}"
 
 
 def repository_from_url(url: str | None) -> str | None:
@@ -88,6 +126,32 @@ def github_request(
     except urllib.error.HTTPError as error:
         details = error.read().decode("utf-8", errors="replace")
         raise RuntimeError(f"GitHub API {method} {path} failed: {error.code} {details}") from error
+
+
+def github_app_installation_token(app_id: str, installation_id: str, private_key_pem: str) -> str:
+    jwt = create_github_app_jwt(app_id, private_key_pem)
+    path = f"/app/installations/{installation_id}/access_tokens"
+    _, payload = github_request(jwt, "POST", path)
+    if not isinstance(payload, dict) or not isinstance(payload.get("token"), str):
+        raise RuntimeError("GitHub App installation token response did not include a token")
+    return payload["token"]
+
+
+def github_token() -> str:
+    app_id = env("GITHUB_BOT_APP_ID")
+    installation_id = env("GITHUB_BOT_INSTALLATION_ID")
+    private_key_pem = env("GITHUB_BOT_PRIVATE_KEY")
+    if app_id and installation_id and private_key_pem:
+        print("Using GitHub App installation token for workflow dispatch", flush=True)
+        return github_app_installation_token(app_id, installation_id, private_key_pem)
+
+    token = env("GITHUB_API_KEY", env("GITHUB_TOKEN", env("GH_TOKEN")))
+    if token is None:
+        raise SystemExit(
+            "GITHUB_BOT_APP_ID/GITHUB_BOT_INSTALLATION_ID/GITHUB_BOT_PRIVATE_KEY, "
+            "GITHUB_API_KEY, GITHUB_TOKEN, or GH_TOKEN must be set",
+        )
+    return token
 
 
 def dispatch_workflow(
@@ -192,9 +256,7 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
-    token = env("GITHUB_API_KEY", env("GITHUB_TOKEN", env("GH_TOKEN")))
-    if token is None:
-        raise SystemExit("GITHUB_API_KEY, GITHUB_TOKEN, or GH_TOKEN must be set")
+    token = github_token()
     if args.ref is None:
         raise SystemExit("IOS_SDK_GITHUB_REF or BUILDKITE_BRANCH must be set")
     repository, ref = normalize_repository_and_ref(
